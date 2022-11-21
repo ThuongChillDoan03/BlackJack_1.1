@@ -106,7 +106,7 @@ def stepEnv(action,env_state):
     point_card = env_state[42+(P_player+1)*22]
     point_card_2 = env_state[43+(P_player+1)*22]
     remaining = np.sum(env_state[:10])
-    if remaining == 0:
+    if remaining <= 2:
         env_state[:10] = [32,32,32,32,32,32,32,32,32,128]
 
     if status_player[int(env_state[43]%14)] == 0:
