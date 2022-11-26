@@ -92,8 +92,10 @@ def getValidActions(P_state):
             Valid_Actions_return[4:6] = 1
         if check_place != 0:
             Valid_Actions_return[4:6] = 1
-    return Valid_Actions_return.astype(np.int64)
+        if Sum_number_of_card == 0:
+          Valid_Actions_return[4] = 1
 
+    return Valid_Actions_return.astype(np.int64)
 
 
 
@@ -106,7 +108,7 @@ def stepEnv(action,env_state):
     point_card = env_state[42+(P_player+1)*22]
     point_card_2 = env_state[43+(P_player+1)*22]
     remaining = np.sum(env_state[:10])
-    if remaining <= 2:
+    if remaining <= 8:
         env_state[:10] = [32,32,32,32,32,32,32,32,32,128]
 
     if status_player[int(env_state[43]%14)] == 0:
@@ -127,7 +129,10 @@ def stepEnv(action,env_state):
                     if choice_place >= 1:
                         point_card = point_card + choice_place + 1
                     if choice_place == 0:
-                        point_card = point_card + 11
+                        if point_card >= 11:
+                            point_card = point_card + 1
+                        if point_card <= 10:
+                            point_card = point_card + 11
 
                     env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                     env_state[42+(P_player+1)*22] = point_card
@@ -146,7 +151,10 @@ def stepEnv(action,env_state):
                     if choice_place >= 1:
                         point_card = point_card + choice_place + 1
                     if choice_place == 0:
-                        point_card = point_card + 11
+                        if point_card >= 11:
+                            point_card = point_card + 1
+                        if point_card <= 10:
+                            point_card = point_card + 11
                             
                     env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                     env_state[42+(P_player+1)*22] = point_card
@@ -166,7 +174,10 @@ def stepEnv(action,env_state):
                     if choice_place >= 1:
                         point_card = point_card + choice_place + 1
                     if choice_place == 0:
-                        point_card = point_card + 11
+                        if point_card >= 11:
+                            point_card = point_card + 1
+                        if point_card <= 10:
+                            point_card = point_card + 11
                             
                     env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                     env_state[42+(P_player+1)*22] = point_card
@@ -185,7 +196,10 @@ def stepEnv(action,env_state):
                     if choice_place >= 1:
                         point_card = point_card + choice_place + 1
                     if choice_place == 0:
-                        point_card = point_card + 11
+                        if point_card >= 11:
+                            point_card = point_card + 1
+                        if point_card <= 10:
+                            point_card = point_card + 11
                             
                     env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                     env_state[42+(P_player+1)*22] = point_card
@@ -204,7 +218,7 @@ def stepEnv(action,env_state):
                     weighted_random[choice_place] -= 1
                     card_on_hand[choice_place] += 1
 
-                    check_point_other_A = np.sum(card_on_hand[1:10])
+                    check_point_other_A = env_state[42+(P_player+1)*22]
                     if choice_place >= 1:
                         point_card = point_card + choice_place + 1
                     if choice_place == 0:
@@ -223,7 +237,7 @@ def stepEnv(action,env_state):
                     weighted_random[choice_place] -= 1
                     card_on_hand_2[choice_place] += 1
 
-                    check_point_other_A_1 = np.sum(card_on_hand_2[1:10])
+                    check_point_other_A_1 = env_state[43+(P_player+1)*22]
                     if choice_place >= 1:
                         point_card_2 = point_card_2 + choice_place + 1
                     if choice_place == 0:
@@ -245,7 +259,7 @@ def stepEnv(action,env_state):
                 weighted_random[choice_place] -= 1
                 card_on_hand[choice_place] += 1
                 
-                check_point_other_A = np.sum(card_on_hand[1:10])
+                check_point_other_A = env_state[42+(P_player+1)*22]
                 if choice_place >= 1:
                     point_card = point_card + choice_place + 1
                 if choice_place == 0:
@@ -265,15 +279,15 @@ def stepEnv(action,env_state):
                 card_split = env_state[(44+P_player*22):(32+(P_player+1)*22)]
                 for s_ in range(len(card_split)):
                     if card_split[s_] == 2:
-                        card_split[s_] -= 1
-                        env_state[32+(P_player+1)*22+s_] += 1
+                        card_split[s_] = 1
+                        env_state[32+(P_player+1)*22+s_] = 1
                         env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_split
                 if card_split[0] == 1:
                     env_state[42+(P_player+1)*22] = 11
                     env_state[43+(P_player+1)*22] = 11
                 if card_split[0] == 0:
-                    env_state[42+(P_player+1)*22] = point_card/2
-                    env_state[42+(P_player+1)*22] = env_state[42+(P_player+1)*22] 
+                    env_state[42+(P_player+1)*22] = int(env_state[42+(P_player+1)*22]/2)
+                    env_state[43+(P_player+1)*22] = env_state[42+(P_player+1)*22] 
 
                 env_state[43] += 2
         if P_player == 0:
@@ -285,6 +299,9 @@ def stepEnv(action,env_state):
                         group_one_on_board += 1
                 asgroup_1 = np.sum(card_on_hand)
                 asgroup_2 = np.sum(card_on_hand_2)
+                check_1 = 1
+                check_2 = 1
+                check_3 = 1
 
                 if asgroup_1 == 0 and asgroup_2 == 0:
                     weighted_random = np.array(env_state[:10])
@@ -296,14 +313,20 @@ def stepEnv(action,env_state):
                         if choice_place >= 1:
                             point_card = point_card + choice_place + 1
                         if choice_place == 0:
-                            point_card = point_card + 11
+                            if point_card >= 11:
+                                point_card += 1
+                            if point_card <= 10:
+                                point_card += 11
                                 
                     env_state[44:54] = card_on_hand
                     env_state[64] = point_card
 
-                    env_state[43] += 1
+                    env_state[43] += 2
+                    check_1 -= 1
+                    check_2 -= 1
+                    check_3 -= 1
 
-                if group_one_on_board == 1 and asgroup_1 == 2:  #tách bài
+                if group_one_on_board == 1 and asgroup_1 == 2 and check_1==1:  #tách bài
                     if asgroup_2 == 0:
                         card_split = env_state[44:54]
                         for s_ in range(len(card_split)):
@@ -315,15 +338,19 @@ def stepEnv(action,env_state):
                             env_state[64] = 11
                             env_state[65] = 11
                         if card_split[0] == 0:
-                            env_state[64] = point_card/2
+                            env_state[64] = int(env_state[64]/2)
                             env_state[65] = env_state[64] 
                         env_state[43] += 2
-                elif env_state[64+status_bos] > 11:   #ko rút bài nữa
+                        check_2 -= 1
+                        check_3 -= 1
+
+                if env_state[64+status_bos] > 11 and check_2==1:   #ko rút bài nữa
                     status_player[status_bos] = 0
                     env_state[29+status_bos] = 0
 
                     env_state[43] += 1
-                elif (env_state[64+status_bos]<=11) and (env_state[64+status_bos]>0):   # rút thêm 1 lá
+                    check_3 -= 1
+                if (env_state[64+status_bos]<=11) and (env_state[64+status_bos]>0) and check_3==1:   # rút thêm 1 lá
                     decks_of_card = env_state[(44+status_bos*10):(44+(status_bos+1)*10)]
                     weighted_random = np.array(env_state[:10])
                     rate_random = weighted_random/np.sum(weighted_random)
@@ -332,7 +359,7 @@ def stepEnv(action,env_state):
                     weighted_random[choice_place] -= 1
                     decks_of_card[choice_place] += 1
 
-                    check_point_other_A1 = np.sum(decks_of_card[1:10])
+                    check_point_other_A1 = env_state[64+status_bos]
                     if choice_place >= 1:
                         env_state[64+status_bos] = env_state[64+status_bos] + choice_place + 1
                     if choice_place == 0:
@@ -341,9 +368,7 @@ def stepEnv(action,env_state):
                         elif check_point_other_A1 >= 11:
                             env_state[64+status_bos] += 1      
                     env_state[(44+status_bos*10):(44+(status_bos+1)*10)] = decks_of_card
-
-                    env_state[43] += 1  
-                      
+                    env_state[43] += 1
                 
     #-------------------------------------#####reset_small_game_---------------------------------------#
 
@@ -604,5 +629,5 @@ def random_player(P_state, tempData, perData):
     action = np.random.choice(actions)
     return action, tempData, perData
 
-win, _ = main([random_player]*getAgentsize(), 10000, [0])
+win, _ = main([random_player]*getAgentsize(), 500000, [0])
 print(win)
