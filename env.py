@@ -17,7 +17,7 @@ def getAgentState(env_state):
 
     P_state = np.full(158,0) 
     P_id = int((env_state[43]%14)//2)
-    P1_id = int(env_state[43]%14)
+    P1_id = int(env_state[43]%14)    # Bộ nhỏ của mỗi người
     for i in range(7):
         if (P_id+i) <= 6:
             P_state[i] = env_state[10+P_id+i]
@@ -33,8 +33,8 @@ def getAgentState(env_state):
         P_state[147] = 1
     if P1_id >= 2:
         P_state[147] = env_state[15+P1_id]
-    P_state[148] = env_state[198]
-    for dtb in range(7):
+    P_state[148] = env_state[198]    # số ván đã chơi
+    for dtb in range(7):               # số ván nhỏ win
         if (P_id+i) <= 6:
             P_state[149+dtb] = env_state[199+P_id+dtb]
         elif (P_id+1) > 6:
@@ -56,27 +56,24 @@ def getValidActions(P_state):
     if Check_place_a_bet == 0:
         if Check_coin_player[0] >= 100:
             Valid_Actions_return[0:4] = 1
-        elif Check_coin_player[0]<100 and Check_coin_player[0]>=25:
+        elif Check_coin_player[0]<100 and Check_coin_player[0]>=50:
             Valid_Actions_return[0:3] = 1
-            Valid_Actions_return[3] = 0
-        elif Check_coin_player[0]<25 and Check_coin_player[0]>=10:
+        elif Check_coin_player[0]<50 and Check_coin_player[0]>=20:
             Valid_Actions_return[0:2] = 1
-            Valid_Actions_return[2:4] = 0
-        elif Check_coin_player[0]<10 and Check_coin_player[0]>=5:
+        elif Check_coin_player[0]<20 and Check_coin_player[0]>=10:
             Valid_Actions_return[0] = 1
-            Valid_Actions_return[1:4] = 0
-        elif Check_coin_player[0]<5:
+        elif Check_coin_player[0]<10:
             Valid_Actions_return[4] = 1
-    elif Check_place_a_bet == 1:
+    if Check_place_a_bet == 1:
         Valid_Actions_return[8] = 1                   
-    elif Check_place_a_bet != 0 and Check_place_a_bet != 1:
+    if Check_place_a_bet != 0 and Check_place_a_bet != 1:
         check_place = 0
         for s_ in range(len(Card_on_hand_2)):
             if Card_on_hand_2[s_] != 0:
                 check_place += 1
-
+        
         card_other_0 = 0
-        for run in range(len(Card_on_hand)):
+        for run in range(len(Card_on_hand)):            # 20 lá trên tay
             if Card_on_hand[run] != 0:
                 card_other_0 += 1
 
@@ -84,7 +81,9 @@ def getValidActions(P_state):
             if check_place == 0:
                 if Check_coin_player[0] >= Check_place_a_bet:
                     Valid_Actions_return[4:8] = 1
+            Valid_Actions_return[4:6] = 1
         if card_other_0!=1 and Sum_number_of_card==2:
+            Valid_Actions_return[4:6] = 1
             if check_place == 0:
                 if Check_coin_player[0] >= Check_place_a_bet:
                     Valid_Actions_return[4:7] = 1
@@ -93,7 +92,7 @@ def getValidActions(P_state):
         if check_place != 0:
             Valid_Actions_return[4:6] = 1
         if Sum_number_of_card == 0:
-          Valid_Actions_return[4] = 1
+            Valid_Actions_return[4] = 1
 
     return Valid_Actions_return.astype(np.int64)
 
@@ -108,37 +107,16 @@ def stepEnv(action,env_state):
     point_card = env_state[42+(P_player+1)*22]
     point_card_2 = env_state[43+(P_player+1)*22]
     remaining = np.sum(env_state[:10])
+    check_b = 1
     if remaining <= 8:
         env_state[:10] = [32,32,32,32,32,32,32,32,32,128]
 
     if status_player[int(env_state[43]%14)] == 0:
+        check_b = 0
         env_state[43] += 1
-    if status_player[int(env_state[43]%14)] == 1: 
-        
+    if status_player[int(env_state[43]%14)]==1 and check_b == 1:  
         if P_player >= 1: 
             if action == 0:
-                env_state[15+2*P_player] += 5 #tiền đặt
-                env_state[10+P_player] -= 5   #tiền bị trừ đi
-
-                weighted_random = np.array(env_state[:10])
-                for i_ in range(2):
-                    rate_random = weighted_random/np.sum(weighted_random)
-                    choice_place = np.random.choice(np.arange(len(weighted_random)), p=rate_random)
-                    weighted_random[choice_place] -= 1
-                    card_on_hand[choice_place] += 1
-                    if choice_place >= 1:
-                        point_card = point_card + choice_place + 1
-                    if choice_place == 0:
-                        if point_card >= 11:
-                            point_card = point_card + 1
-                        if point_card <= 10:
-                            point_card = point_card + 11
-
-                    env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
-                    env_state[42+(P_player+1)*22] = point_card
-                 
-                env_state[43] += 1
-            if action == 1:
                 env_state[15+2*P_player] += 10 #tiền đặt
                 env_state[10+P_player] -= 10   #tiền bị trừ đi
 
@@ -155,15 +133,15 @@ def stepEnv(action,env_state):
                             point_card = point_card + 1
                         if point_card <= 10:
                             point_card = point_card + 11
-                            
+
                     env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                     env_state[42+(P_player+1)*22] = point_card
+                    env_state[:10] = weighted_random
 
                 env_state[43] += 1
-
-            if action == 2:
-                env_state[15+2*P_player] += 25 #tiền đặt
-                env_state[10+P_player] -= 25   #tiền bị trừ đi
+            if action == 1:
+                env_state[15+2*P_player] += 20 #tiền đặt
+                env_state[10+P_player] -= 20   #tiền bị trừ đi
 
                 weighted_random = np.array(env_state[:10])
                 for i_ in range(2):
@@ -181,6 +159,31 @@ def stepEnv(action,env_state):
                             
                     env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                     env_state[42+(P_player+1)*22] = point_card
+                    env_state[:10] = weighted_random
+
+                env_state[43] += 1
+
+            if action == 2:
+                env_state[15+2*P_player] += 50 #tiền đặt
+                env_state[10+P_player] -= 50   #tiền bị trừ đi
+
+                weighted_random = np.array(env_state[:10])
+                for i_ in range(2):
+                    rate_random = weighted_random/np.sum(weighted_random)
+                    choice_place = np.random.choice(np.arange(len(weighted_random)), p=rate_random)
+                    weighted_random[choice_place] -= 1
+                    card_on_hand[choice_place] += 1
+                    if choice_place >= 1:
+                        point_card = point_card + choice_place + 1
+                    if choice_place == 0:
+                        if point_card >= 11:
+                            point_card = point_card + 1
+                        if point_card <= 10:
+                            point_card = point_card + 11
+                            
+                    env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
+                    env_state[42+(P_player+1)*22] = point_card
+                    env_state[:10] = weighted_random
 
                 env_state[43] += 1
             if action == 3:
@@ -203,12 +206,12 @@ def stepEnv(action,env_state):
                             
                     env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                     env_state[42+(P_player+1)*22] = point_card
+                    env_state[:10] = weighted_random
 
                 env_state[43] += 1
             if action == 4:
                 status_player[int(env_state[43]%14)] == 0
                 env_state[29+(env_state[43]%14)] = 0
-                
                 env_state[43] += 1
             if action == 5:
                 if env_state[43]%2 == 0:
@@ -228,8 +231,7 @@ def stepEnv(action,env_state):
                             point_card += 1      
                     env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                     env_state[42+(P_player+1)*22] = point_card
-
-                    env_state[43] += 1
+                    env_state[:10] = weighted_random
                 if env_state[43]%2 != 0:
                     weighted_random = np.array(env_state[:10])
                     rate_random = weighted_random/np.sum(weighted_random)
@@ -247,11 +249,12 @@ def stepEnv(action,env_state):
                             point_card_2 += 1      
                     env_state[(32+(P_player+1)*22):(42+(P_player+1)*22)] = card_on_hand_2
                     env_state[43+(P_player+1)*22] = point_card
+                    env_state[:10] = weighted_random 
 
-                    env_state[43] += 1
+                env_state[43] += 1
             if action == 6:
                 env_state[15+2*P_player] *= 2
-                env_state[10+P_player] -= (env_state[15+2*P_player]/2)
+                env_state[10+P_player] -= int(env_state[15+2*P_player]/2)
 
                 weighted_random = np.array(env_state[:10])
                 rate_random = weighted_random/np.sum(weighted_random)
@@ -270,7 +273,11 @@ def stepEnv(action,env_state):
                 env_state[(44+P_player*22):(32+(P_player+1)*22)] = card_on_hand
                 env_state[42+(P_player+1)*22] = point_card
 
-                env_state[43] += 1             
+                env_state[:10] = weighted_random
+                status_player[int(env_state[43]%14)] == 0   # dừng turn bộ action!!!
+                env_state[29+(env_state[43]%14)] = 0
+
+                env_state[43] += 1        
             if action == 7:
                 env_state[16+2*P_player] = env_state[15+2*P_player]
                 env_state[10+P_player]-= env_state[16+2*P_player]
@@ -291,13 +298,10 @@ def stepEnv(action,env_state):
 
                 env_state[43] += 2
         if P_player == 0:
-            if action == 8:
-                group_one_on_board = 0
-                for i_s in range(len(card_on_hand)):
-                    if card_on_hand[i_s] != 0:
-                        group_one_on_board += 1
-                asgroup_1 = np.sum(card_on_hand)
-                test_action = np.sum(env_state[31:43])
+            if action == 8:     
+                asgroup_1 = np.sum(card_on_hand)   # bộ thứ nhất của cái
+                test_action = np.sum(status_player[2:])   # tình trạng người chơi còn action ko
+                check_a = 1
                 if asgroup_1 == 0:     # chưa có lá bài nào hết!!!Bốc 2 lá bài (trong đó có 1 lá úp thêm vào env[206])
                     weighted_random = np.array(env_state[:10])
                     for i_ in range(2):
@@ -313,7 +317,10 @@ def stepEnv(action,env_state):
                         if i_ == 1:
                             weighted_random[choice_place] -= 1
                             env_state[206] += choice_place+1
-                    poin_sum = point_card + env_state[206]
+                    if env_state[206] != 1:
+                        poin_sum = point_card + env_state[206]
+                    if env_state[206] == 1:
+                        poin_sum = point_card + 11
                     if poin_sum == 21:
                         env_state[44:54] = [1,0,0,0,0,0,0,0,0,1]
                         env_state[206] = 0
@@ -322,38 +329,42 @@ def stepEnv(action,env_state):
                     if poin_sum != 21:
                         env_state[44:54] = card_on_hand
                         env_state[64] = point_card
-                        env_state[43] += 2
-                
-                if asgroup_1 != 0:
+                    
+                    env_state[:10] = weighted_random
+                    check_a = 0
+                    env_state[43] += 2
+                if asgroup_1 != 0 and check_a == 1:
                     if test_action != 0:                    # Vẫn còn người chơi đang action
                         env_state[43] += 2
                     if test_action == 0:
                         env_state[43+env_state[206]] += 1
-                        env_state[64] += (env_state[206] - 1)
+                        if env_state[206] != 1:
+                            env_state[64] = env_state[64] + env_state[206]
+                        if env_state[206] == 1:
+                            env_state[64] += 11
                         env_state[206] = 0
                         if env_state[64] > 16:   #ko rút bài nữa
+                            status_player[0:2] = 0 
                             env_state[29:31] = 0
-
-                            env_state[43] += 2
-                        if env_state[64]<=16:   # rút thêm 1 lá
-                            decks_of_card = env_state[44:54]
+                        if 0<env_state[64]<=16:  # rút thêm 1 lá
                             weighted_random = np.array(env_state[:10])
                             rate_random = weighted_random/np.sum(weighted_random)
                             choice_place = np.random.choice(np.arange(len(weighted_random)), p=rate_random)
 
                             weighted_random[choice_place] -= 1
-                            decks_of_card[choice_place] += 1
+                            card_on_hand[choice_place] += 1
 
-                            check_point_other_A1 = env_state[64]
                             if choice_place >= 1:
                                 env_state[64] = env_state[64] + choice_place + 1
                             if choice_place == 0:
-                                if check_point_other_A1 <= 10:
+                                if env_state[64] >= 11:
+                                    env_state[64] += 1
+                                elif env_state[64] <= 10:
                                     env_state[64] += 11
-                                elif check_point_other_A1 >= 11:
-                                    env_state[64] += 1      
-                            env_state[44:54] = decks_of_card
-                            env_state[43] += 2
+                            env_state[:10] = weighted_random    
+                            env_state[44:54] = card_on_hand
+                        
+                        env_state[43] += 2
                 
     #-------------------------------------#####reset_small_game_---------------------------------------#
 
@@ -361,6 +372,7 @@ def stepEnv(action,env_state):
     for zes in range(14):
         if point_end[zes] >= 21:
             status_player[zes] = 0
+            env_state[29+zes] = 0
     check_small_game = np.sum(status_player)
     if check_small_game == 0:
         cardNumbers = []
@@ -382,7 +394,7 @@ def stepEnv(action,env_state):
                 for rub_ in asd:
                     addtional = int(0.5*(env_state[15+2*rub_] + env_state[16+2*rub_]))
                     if env_state[10+rub_] >= addtional:
-                        env_state[10] += int(1.5*(env_state[15+2*rub_] + env_state[16+2*rub_]))
+                        env_state[10] += 3*addtional
                         env_state[10+rub_] -= addtional
                     else:
                         env_state[10] += env_state[15+2*rub_] + env_state[16+2*rub_] + env_state[10+rub_]
@@ -397,8 +409,8 @@ def stepEnv(action,env_state):
                     env_state[15+2*runn] = 0
                     env_state[199+runn] += 1 
                 
-                asd.remove(0)
-                for ez in range(2):
+                asd.remove(0)                   # player không có blackjack
+                if point_end[0] <= 21:                 # nhà cái ít hơn 22đ
                     for dct in asd:
                         if point_end[2*dct] >= 22:
                             env_state[10] += env_state[15+2*dct]
@@ -409,34 +421,54 @@ def stepEnv(action,env_state):
                             env_state[16+2*dct] = 0
                             env_state[199] += 1
                         if point_end[2*dct] <= 21:
-                            if point_end[2*dct] == point_end[ez]:
+                            if point_end[2*dct] == env_state[64]:
                                 env_state[10+dct] += env_state[15+2*dct]
                                 env_state[15+2*dct] = 0
-                            elif point_end[2*dct] > point_end[ez]:
+                            elif point_end[2*dct] > env_state[64]:
                                 env_state[10+dct] += 2*env_state[15+2*dct]
                                 env_state[10] -= env_state[15+2*dct]
                                 env_state[15+2*dct] = 0
                                 env_state[199+dct] += 1
-                            elif point_end[2*dct] < point_end[ez]:
+                            elif point_end[2*dct] < env_state[64]:
                                 env_state[10] += env_state[15+2*dct]
                                 env_state[15+2*dct] = 0
                                 env_state[199] += 1
                         if point_end[2*dct+1] <= 21:
-                            if point_end[2*dct+1] == point_end[ez]:
+                            if point_end[2*dct+1] == env_state[64]:
                                 env_state[10+dct] += env_state[16+2*dct]
                                 env_state[16+2*dct] = 0
-                            elif point_end[2*dct+1] > point_end[ez]:
+                            elif point_end[2*dct+1] > env_state[64]:
                                 env_state[10+dct] += 2*env_state[16+2*dct]
                                 env_state[10] -= env_state[16+2*dct]
                                 env_state[16+2*dct] = 0
                                 env_state[199+dct] += 1
-                            elif point_end[2*dct+1] < point_end[ez]:
+                            elif point_end[2*dct+1] < env_state[64]:
                                 env_state[10] += env_state[16+2*dct]
                                 env_state[16+2*dct] = 0
-                                env_state[199] += 1
+                                if point_end[2*dct+1] > 0:
+                                    env_state[199] += 1
+                if point_end[0] >= 22:                  # Nhà cái lớn hơn 22đ
+                    for dct in asd:
+                        if point_end[2*dct] >= 22:
+                            env_state[10+dct] += env_state[15+2*dct]
+                            env_state[15+2*dct] = 0
+                        if point_end[2*dct+1] >= 22:
+                            env_state[10+dct] += env_state[16+2*dct]
+                            env_state[16+2*dct] = 0
+                        if point_end[2*dct] <= 21:
+                            env_state[10+dct] += 2*env_state[15+2*dct]
+                            env_state[10] -= env_state[15+2*dct]
+                            env_state[15+2*dct] = 0
+                            env_state[199+dct] += 1
+                        if point_end[2*dct+1] <= 21:
+                            env_state[10+dct] += 2*env_state[16+2*dct]
+                            env_state[10] -= env_state[16+2*dct]
+                            env_state[16+2*dct] = 0
+                            if point_end[2*dct+1] > 0:
+                                env_state[199+dct] += 1
         else:
-            for ez in range(2):
-                asd = [1,2,3,4,5,6]
+            asd = [1,2,3,4,5,6]
+            if point_end[0] <= 21:                 # nhà cái ít hơn 22đ
                 for dct in asd:
                     if point_end[2*dct] >= 22:
                         env_state[10] += env_state[15+2*dct]
@@ -447,38 +479,59 @@ def stepEnv(action,env_state):
                         env_state[16+2*dct] = 0
                         env_state[199] += 1
                     if point_end[2*dct] <= 21:
-                        if point_end[2*dct] == point_end[ez]:
+                        if point_end[2*dct] == env_state[64]:
                             env_state[10+dct] += env_state[15+2*dct]
                             env_state[15+2*dct] = 0
-                        elif point_end[2*dct] > point_end[ez]:
+                        elif point_end[2*dct] > env_state[64]:
                             env_state[10+dct] += 2*env_state[15+2*dct]
                             env_state[10] -= env_state[15+2*dct]
                             env_state[15+2*dct] = 0
                             env_state[199+dct] += 1
-                        elif point_end[2*dct] < point_end[ez]:
+                        elif point_end[2*dct] < env_state[64]:
                             env_state[10] += env_state[15+2*dct]
                             env_state[15+2*dct] = 0
                             env_state[199] += 1
                     if point_end[2*dct+1] <= 21:
-                        if point_end[2*dct+1] == point_end[ez]:
+                        if point_end[2*dct+1] == env_state[64]:
                             env_state[10+dct] += env_state[16+2*dct]
                             env_state[16+2*dct] = 0
-                        elif point_end[2*dct+1] > point_end[ez]:
+                        elif point_end[2*dct+1] > env_state[64]:
                             env_state[10+dct] += 2*env_state[16+2*dct]
                             env_state[10] -= env_state[16+2*dct]
                             env_state[16+2*dct] = 0
                             env_state[199+dct] += 1
-                        elif point_end[2*dct+1] < point_end[ez]:
+                        elif point_end[2*dct+1] < env_state[64]:
                             env_state[10] += env_state[16+2*dct]
                             env_state[16+2*dct] = 0
-                            env_state[199] += 1
+                            if point_end[2*dct+1] > 0:
+                                env_state[199] += 1
+            if point_end[0] >= 22:
+                for dct in asd:
+                    if point_end[2*dct] >= 22:
+                        env_state[10+dct] += env_state[15+2*dct]
+                        env_state[15+2*dct] = 0
+                    if point_end[2*dct+1] >= 22:
+                        env_state[10+dct] += env_state[16+2*dct]
+                        env_state[16+2*dct] = 0
+                    if point_end[2*dct] <= 21:
+                        env_state[10+dct] += 2*env_state[15+2*dct]
+                        env_state[10] -= env_state[15+2*dct]
+                        env_state[15+2*dct] = 0
+                        env_state[199+dct] += 1
+                    if point_end[2*dct+1] <= 21:
+                        env_state[10+dct] += 2*env_state[16+2*dct]
+                        env_state[10] -= env_state[16+2*dct]
+                        env_state[16+2*dct] = 0
+                        if point_end[2*dct+1] > 0:
+                            env_state[199+dct] += 1
 
-        env_state[43:198] = 0        
+        env_state[43:198] = 0
+        env_state[206] = 0    
         for a_s in range(7):
             env_state[29 + a_s*2] = 1
         env_state[198] += 1
+    print(env_state)
     return env_state
-
 
 
 def getAgentsize():
@@ -492,21 +545,26 @@ def checkEnded(env_state):
             pointArr[edv+1] -= 1000
         maxPoint = np.max(pointArr)
         maxPointPlay = np.where(pointArr==maxPoint)[0]
+        print(maxPointPlay[0])
         if len(maxPointPlay) == 1:
             return maxPointPlay[0] 
         else:
             number_of_win_smallgame = env_state[199:206]
             maxWin_smallgame = np.max(number_of_win_smallgame)
-            maxWin_smallgame_Play = np.where(number_of_win_smallgame == maxWin_smallgame)[0]
+            number_of_win_smallgame_1 = np.array(number_of_win_smallgame)
+            maxWin_smallgame_Play = np.where(number_of_win_smallgame_1 == maxWin_smallgame)[0]
             
             return maxWin_smallgame_Play[0]
     else:
         AF_end = 0
         for tex in range(7):
-            if pointArr[tex] >= 5:
+            if pointArr[tex] >= 10:
                 AF_end += 1
         if AF_end == 1:
-            winpoint = np.where(pointArr >= 5)[0]
+            maxpoin = np.max(pointArr)
+            winpoint = np.where(pointArr == maxpoin)[0]
+
+            print(winpoint[0])
             return winpoint
         else:
             return -1       
@@ -518,33 +576,35 @@ def getReward(P_state):
         scorePoint_Arr = P_state[0:7]
         money_left = 0
         for ted in range(7):
-            if scorePoint_Arr[ted] >= 5:
+            if scorePoint_Arr[ted] >= 10:
                 money_left += 1
         if money_left == 1:
-            winnerx = np.where(scorePoint_Arr >= 5)[0]
+            maxwin = np.max(scorePoint_Arr)
+            winnerx = np.where(scorePoint_Arr == maxwin)[0]
             if winnerx == 0:
                 return 1
             else:
                 return -1
             
-
         return 0
     else:
         scorePoint_Arr = P_state[0:7]
         maxCoin_pl = np.max(scorePoint_Arr)
+        scorePoint_Arr_1 = np.array(scorePoint_Arr)
         if scorePoint_Arr[0] < maxCoin_pl:
             return -1
         else:
-            maxCoin_Pl_place = np.where(scorePoint_Arr==maxCoin_pl)
+            maxCoin_Pl_place = np.where(scorePoint_Arr_1==maxCoin_pl)
             if len(maxCoin_Pl_place) == 1:
                 return 1
             else:
                 maxNumber_ofSmallWin = P_state[149:156]
                 maxWin = np.max(maxNumber_ofSmallWin)
+                maxNumber_ofSmallWin_1 = np.array(maxNumber_ofSmallWin)
                 if maxNumber_ofSmallWin[0] < maxWin:
                     return -1
                 else:    #trường hợp nếu số ván thắng nhỏ bằng max
-                    maxWin_player = np.where(maxNumber_ofSmallWin==maxWin)   #những người có số ván thắng nhỏ giống nhau
+                    maxWin_player = np.where(maxNumber_ofSmallWin_1==maxWin)   #những người có số ván thắng nhỏ giống nhau
                 if len(maxWin_player) == 1:
                     return 1
                 else:
@@ -616,8 +676,9 @@ def main(listAgent, num_math, perData):
 def random_player(P_state, tempData, perData):
     actions = getValidActions(P_state)
     actions = np.where(actions == 1)[0]
-    # print(actions)
+    print(actions)
     action = np.random.choice(actions)
+    print(action)
     return action, tempData, perData
 
 win, _ = main([random_player]*getAgentsize(), 1, [0])
